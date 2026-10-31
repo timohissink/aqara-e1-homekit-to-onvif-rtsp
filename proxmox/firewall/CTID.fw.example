@@ -1,0 +1,13 @@
+# /etc/pve/firewall/<CTID>.fw  (e.g. 105.fw)
+# Only the UniFi Protect console (UCG/UDM/UNVR/CloudKey) may reach the virtual
+# cameras. Also set firewall=1 on every netX of the container.
+[OPTIONS]
+enable: 1
+policy_in: DROP
+policy_out: ACCEPT
+log_level_in: nolog
+
+[RULES]
+IN ACCEPT -source 192.168.1.1 -p tcp -dport 8081 -log nolog # Protect -> ONVIF
+IN ACCEPT -source 192.168.1.1 -p tcp -dport 8554 -log nolog # Protect -> RTSP proxy (auth by go2rtc)
+IN ACCEPT -source 192.168.1.1 -p udp -dport 3702 -log nolog # WS-Discovery

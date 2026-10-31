@@ -1,0 +1,66 @@
+# /etc/onvif-server/config.yaml for daniela-hase/onvif-server
+#
+# One entry per virtual ONVIF camera. UniFi Protect identifies cameras by MAC,
+# so every entry needs its OWN network interface (own MAC + own IP) inside the LXC.
+# RTSP is proxied as plain TCP to go2rtc; go2rtc checks the RTSP credentials,
+# which you enter in Protect during adoption. No snapshot proxy is configured on
+# purpose (that would expose the go2rtc API); Protect then shows a placeholder
+# image where it would use a snapshot, live view and recordings work normally.
+#
+# Keep width/height/framerate/bitrate in sync with what go2rtc actually delivers
+# (check with tools/stream_check.sh).
+
+onvif:
+  - mac: <MAC_OF_ETH0>            # e.g. bc:24:11:xx:xx:xx (net0 of the LXC) -> 192.168.1.31
+    name: Camera 1
+    uuid: <RANDOM_UUID_V4_1>      # generate with: cat /proc/sys/kernel/random/uuid
+    ports:
+      server: 8081                # ONVIF device service
+      rtsp: 8554                  # RTSP pass-through (TCP proxy)
+    highQuality:
+      rtsp: /camera1              # go2rtc stream name
+      width: 1280
+      height: 720
+      framerate: 15
+      bitrate: 1024
+      quality: 4
+    target:
+      hostname: 192.168.1.10      # Home Assistant host running the go2rtc add-on
+      ports:
+        rtsp: 8554
+
+  - mac: <MAC_OF_ETH1>            # net1 of the LXC -> 192.168.1.32 (see docs/multiple-cameras.md)
+    name: Camera 2
+    uuid: <RANDOM_UUID_V4_2>
+    ports:
+      server: 8081
+      rtsp: 8554
+    highQuality:
+      rtsp: /camera2
+      width: 1920
+      height: 1080
+      framerate: 15
+      bitrate: 2048
+      quality: 4
+    target:
+      hostname: 192.168.1.10
+      ports:
+        rtsp: 8554
+
+  - mac: <MAC_OF_ETH2>            # net2 of the LXC -> 192.168.1.33
+    name: Camera 3
+    uuid: <RANDOM_UUID_V4_3>
+    ports:
+      server: 8081
+      rtsp: 8554
+    highQuality:
+      rtsp: /camera3
+      width: 1280
+      height: 720
+      framerate: 15
+      bitrate: 1024
+      quality: 4
+    target:
+      hostname: 192.168.1.10
+      ports:
+        rtsp: 8554

@@ -1,0 +1,5 @@
+# /etc/pve/nodes/<NODE>/host.fw
+# Keep the host firewall OFF so enabling the datacenter firewall does not affect
+# SSH, the web UI (8006), storage or backup traffic of the Proxmox host itself.
+[OPTIONS]
+enable: 0

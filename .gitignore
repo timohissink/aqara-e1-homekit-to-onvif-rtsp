@@ -1,0 +1,17 @@
+# Never commit real configs or credentials
+*.local.yaml
+*.local.yml
+config.yaml
+go2rtc.yaml
+*.env
+.env*
+*credentials*
+*.secret
+*.pcap
+*.pcapng
+diagnostics*.json
+config_entry*.json
+node_modules/
+__pycache__/
+*.pyc
+.DS_Store

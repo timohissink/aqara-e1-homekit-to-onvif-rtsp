@@ -1,0 +1,43 @@
+# go2rtc configuration (Home Assistant add-on "go2rtc": /config/go2rtc.yaml)
+#
+# Replace every <PLACEHOLDER>. Use two DIFFERENT credential pairs:
+#   - api:  for the go2rtc web UI / REST API (admin access, never give this to Protect)
+#   - rtsp: only for RTSP consumers on the LAN (UniFi Protect). Avoid look-alike
+#           characters (l/I/1, O/0) in this password: you will type it into Protect.
+#
+# Note: go2rtc does not require RTSP auth for clients connecting from localhost
+# (127.0.0.1), e.g. Scrypted running on the same host with host networking.
+
+api:
+  listen: ":1984"
+  username: <API_ADMIN_USER>
+  password: <API_ADMIN_PASSWORD>
+
+rtsp:
+  listen: ":8554"
+  username: <RTSP_USER>          # e.g. "rtspviewer"
+  password: <RTSP_PASSWORD>
+  default_query: video           # Protect only needs H.264 video; drops the AAC-ELD audio track
+
+streams:
+  # "hass:<title>" reuses the HomeKit pairing that Home Assistant's
+  # homekit_controller integration already has for the camera. <title> is the
+  # title of the config entry (Settings > Devices & services > HomeKit Device),
+  # e.g. "Camera-E1-XXXX".
+  #
+  # Fragment options (handled by go2rtc's HomeKit client):
+  #   #maxwidth=1280  only pick native resolutions with width  <= 1280
+  #   #maxheight=720  only pick native resolutions with height <= 720
+  #   #bitrate=1M     request ~1 Mbit/s from the camera (default ~4 Mbit/s)
+  # Both maxwidth AND maxheight are needed for 16:9; see README "Aspect ratio gotcha".
+
+  # Camera on weak Wi-Fi: 1280x720 @ ~1 Mbit/s (no packet loss)
+  camera1:
+    - hass:<E1_CONFIG_ENTRY_TITLE_1>#maxwidth=1280#maxheight=720#bitrate=1M
+
+  # Camera with good Wi-Fi: native 1920x1080 @ ~4 Mbit/s
+  camera2:
+    - hass:<E1_CONFIG_ENTRY_TITLE_2>
+
+  camera3:
+    - hass:<E1_CONFIG_ENTRY_TITLE_3>#maxwidth=1280#maxheight=720#bitrate=1M

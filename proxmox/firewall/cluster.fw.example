@@ -1,0 +1,9 @@
+# /etc/pve/firewall/cluster.fw
+# Proxmox only evaluates guest (CT/VM) firewalls when the datacenter firewall is
+# enabled. To avoid side effects on everything else, enable it with ACCEPT
+# policies and keep the host firewall disabled (host.fw). Merge with any
+# existing cluster.fw instead of overwriting it.
+[OPTIONS]
+enable: 1
+policy_in: ACCEPT
+policy_out: ACCEPT
