@@ -19,6 +19,13 @@ rtsp:
   password: <RTSP_PASSWORD>
   default_query: video           # Protect only needs H.264 video; drops the AAC-ELD audio track
 
+# Optional: low-latency H.264 preset for Apple Home via Scrypted.
+# The E1 sends a keyframe only every ~6.7 s, so live view is slow to start.
+# The *_hk streams below re-encode with a keyframe every 8 frames (~0.5 s).
+# See docs/fast-live-view.md (CPU numbers, hardware acceleration).
+ffmpeg:
+  h264hk: "-c:v libx264 -g 8 -keyint_min 8 -sc_threshold 0 -bf 0 -profile:v main -level:v 4.0 -preset:v superfast -tune:v zerolatency -threads:v 1 -pix_fmt:v yuv420p -b:v 1500k -maxrate 2000k -bufsize 2000k"
+
 streams:
   # "hass:<title>" reuses the HomeKit pairing that Home Assistant's
   # homekit_controller integration already has for the camera. <title> is the
@@ -35,9 +42,24 @@ streams:
   camera1:
     - hass:<E1_CONFIG_ENTRY_TITLE_1>#maxwidth=1280#maxheight=720#bitrate=1M
 
-  # Camera with good Wi-Fi: native 1920x1080 @ ~4 Mbit/s
+  # Camera with good Wi-Fi: 1280x720 at the camera's default bitrate.
+  # (Drop #maxwidth/#maxheight for native 1920x1080 if you do not transcode.)
   camera2:
-    - hass:<E1_CONFIG_ENTRY_TITLE_2>
+    - hass:<E1_CONFIG_ENTRY_TITLE_2>#maxwidth=1280#maxheight=720
 
   camera3:
     - hass:<E1_CONFIG_ENTRY_TITLE_3>#maxwidth=1280#maxheight=720#bitrate=1M
+
+  # Transcoded streams for Scrypted / Apple Home (short GOP, fast start).
+  # Read from the streams above over loopback, so still ONE HomeKit session per
+  # camera. Video is re-encoded, AAC-ELD audio is passed through.
+  # Keep UniFi Protect on camera1/camera2/camera3.
+  camera1_hk:
+    - ffmpeg:camera1#video=h264hk
+    - rtsp://127.0.0.1:8554/camera1?audio
+  camera2_hk:
+    - ffmpeg:camera2#video=h264hk
+    - rtsp://127.0.0.1:8554/camera2?audio
+  camera3_hk:
+    - ffmpeg:camera3#video=h264hk
+    - rtsp://127.0.0.1:8554/camera3?audio

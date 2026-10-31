@@ -282,7 +282,27 @@ non-zero byte count.
 ### 8. Optional: keep the cameras in Apple Home
 
 See [`docs/scrypted-homekit.md`](docs/scrypted-homekit.md). Scrypted re-exports
-`rtsp://127.0.0.1:8554/<stream>` as standalone HomeKit cameras.
+`rtsp://127.0.0.1:8554/<stream>_hk` as standalone HomeKit cameras.
+
+#### Fast live view in Apple Home
+
+The E1 sends a keyframe only every ~6.7 s. Through Scrypted, that makes live
+view take 3–7 s to start, and tiles can show grey, smeared stills. The fix
+has two parts:
+
+1. In go2rtc, add a `<stream>_hk` stream per camera that re-encodes the video
+   with a ~0.5 s keyframe interval (`ffmpeg:<stream>#video=h264hk`, see
+   `go2rtc/go2rtc.yaml.example`). It reads from the existing stream, so the
+   camera's Wi-Fi load does not change. It costs CPU: about 6 % of a 4-vCPU
+   J5040 VM per 720p camera. You can also use VAAPI if the VM has an iGPU.
+2. In Scrypted, point each camera at `<stream>_hk`, set the snapshot URL to
+   `http://127.0.0.1:1984/api/frame.jpeg?src=<stream>_hk` and turn
+   **Snapshots from Prebuffer** off.
+
+Result: the first keyframe comes straight from Scrypted's prebuffer, so live
+view starts in about 1 s instead of 3–7 s, and snapshots are always complete.
+See [`docs/fast-live-view.md`](docs/fast-live-view.md) for the details,
+measurements and tuning.
 
 ## Troubleshooting
 
@@ -292,6 +312,9 @@ See [`docs/scrypted-homekit.md`](docs/scrypted-homekit.md). Scrypted re-exports
 | Picture looks **stretched / squarish** | go2rtc chose a native **4:3** mode (1280x960) because only `maxwidth` was set. | Add `#maxheight=720`; check with `tools/stream_check.sh` (expect 1280x720). Update `width`/`height` in onvif-server. |
 | Grey smears, low fps, Apple Home stops after a few seconds; Scrypted logs `packet loss` / `fua packet missing` | 1080p at ~4 Mbit/s over weak Wi-Fi to the E1 | `#maxwidth=1280#maxheight=720#bitrate=1M`; improve Wi-Fi or AP placement |
 | **Protect black / frozen** after a go2rtc restart or config change | Protect does not always reconnect cleanly | Switch the camera **off and on** in Protect (or reboot it from Protect) |
+| Apple Home live view takes **3–7 s** to start; Scrypted logs `Unable to find sync frame in rtsp prebuffer` | E1 keyframe interval ~6.7 s is longer than Scrypted's prebuffer window | Short-GOP transcode (`<stream>_hk`), see [`docs/fast-live-view.md`](docs/fast-live-view.md) |
+| Apple Home tile shows a **grey / smeared / old still** | Snapshot decoded from the prebuffer without a keyframe, or served from cache | Snapshot URL `http://127.0.0.1:1984/api/frame.jpeg?src=<stream>_hk`, Snapshots from Prebuffer `Disabled` |
+| Still `Unable to find sync frame` with the transcode; "Detected Keyframe Interval" ~0.13 | libx264 sliced threads: every slice is an IDR NAL | Add `-threads:v 1` to the ffmpeg preset |
 | Apple Home live view not loading after go2rtc changes | Scrypted prebuffer reconnecting | Wait ~30 s, then close and reopen the Home app |
 | All virtual cameras show the **same stream** / Protect sees one device | Several IPs answered with the same MAC (ARP flux), or the same `uuid` | One NIC per camera, `arp_ignore=1` / `arp_announce=2`, unique UUIDs; see [`docs/multiple-cameras.md`](docs/multiple-cameras.md) |
 | Camera not discovered | Firewall blocks WS-Discovery, or the CT is in another VLAN than Protect | Allow udp 3702 from the console; same L2 network or add it manually by IP |
@@ -331,6 +354,7 @@ See [`docs/scrypted-homekit.md`](docs/scrypted-homekit.md). Scrypted re-exports
 ├── tools/onvif_test.sh                   # ONVIF device/profile/stream URI
 ├── tools/homekit_video_attrs.py          # list native E1 resolutions
 └── docs/
+    ├── fast-live-view.md
     ├── multiple-cameras.md
     └── scrypted-homekit.md
 ```
