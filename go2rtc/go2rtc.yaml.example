@@ -53,7 +53,9 @@ streams:
   # Transcoded streams for Scrypted / Apple Home (short GOP, fast start).
   # Read from the streams above over loopback, so still ONE HomeKit session per
   # camera. Video is re-encoded, AAC-ELD audio is passed through.
-  # Keep UniFi Protect on camera1/camera2/camera3.
+  # UniFi Protect stays on camera1/camera2/camera3 here. To give Protect the
+  # fast start too, rename the raw stream to cameraN_src and make cameraN the
+  # transcode (see docs/fast-live-view.md, "Fast start in UniFi Protect too").
   camera1_hk:
     - ffmpeg:camera1#video=h264hk
     - rtsp://127.0.0.1:8554/camera1?audio

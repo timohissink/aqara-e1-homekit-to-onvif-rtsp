@@ -51,9 +51,8 @@ Notes:
 - `rtsp://127.0.0.1:...` and `ffmpeg:<stream>` connect over loopback, so they
   need no RTSP credentials. The go2rtc API and RTSP auth for LAN clients stay
   unchanged.
-- Keep UniFi Protect on the original stream (`/camera1`) unless you want
-  Protect to record the transcode. Protect caches the stream URI it got at
-  adoption, so changing the path in onvif-server alone has no effect.
+- UniFi Protect can use the fast stream too, see
+  the section "Fast start in UniFi Protect too" below.
 
 ### CPU
 
@@ -83,6 +82,33 @@ camera1_hk:
 This needs the GPU passed through to the HA VM (PCI passthrough or a GVT-g /
 SR-IOV virtual function). Check the result with `tools/stream_check.sh` and
 verify the keyframe interval with ffprobe.
+
+## Fast start in UniFi Protect too
+
+Protect stores the RTSP URI it got at adoption (e.g. `/camera1` via
+onvif-server). Changing the path in onvif-server has no effect until you
+re-adopt. Instead, rename the streams in go2rtc so that `/camera1` itself
+becomes the short-GOP transcode:
+
+```yaml
+streams:
+  camera1_src:                                    # raw camera stream (renamed)
+    - hass:<E1_CONFIG_ENTRY_TITLE_1>#maxwidth=1280#maxheight=720#bitrate=1M
+  camera1:                                        # what Protect AND Scrypted use
+    - ffmpeg:camera1_src#video=h264hk
+    - rtsp://127.0.0.1:8554/camera1_src?audio
+```
+
+- Protect and Scrypted share the same transcode, so there is no extra CPU and
+  no extra camera session. Drop the separate `camera1_hk` stream, and point
+  Scrypted (stream URL and snapshot URL) at `camera1`.
+- RTSP credentials are global in go2rtc, so Protect's login still works for
+  the renamed stream.
+- After the go2rtc restart, Protect reconnects on its own. If it stays black,
+  switch the camera off and on in Protect.
+- Measured: first keyframe on `rtsp://.../camera1` 0.94–1.17 s, before 3.9–5.2 s
+  on the raw stream. Both include ~0.7 s of client and RTSP setup.
+  go2rtc has no GOP cache, so a new RTSP client waits at most one GOP (~0.5 s).
 
 ## Fix 2: point Scrypted at the transcoded stream and take clean snapshots
 

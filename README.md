@@ -302,7 +302,9 @@ has two parts:
 Result: the first keyframe comes straight from Scrypted's prebuffer, so live
 view starts in about 1 s instead of 3–7 s, and snapshots are always complete.
 See [`docs/fast-live-view.md`](docs/fast-live-view.md) for the details,
-measurements and tuning.
+measurements and tuning. The same doc shows how to give UniFi Protect the fast
+stream without re-adopting: rename the raw stream to `<stream>_src` and make
+`<stream>` the transcode.
 
 ## Troubleshooting
 
